@@ -1,26 +1,19 @@
 
 % compute the background image
-Im0 = double(imread('DATA/ball00000100.jpg','jpg'));
-Im1 = double(imread('DATA/ball00000101.jpg','jpg'));
-Im2 = double(imread('DATA/ball00000102.jpg','jpg'));
-Im3 = double(imread('DATA/ball00000103.jpg','jpg'));
-Im4 = double(imread('DATA/ball00000104.jpg','jpg'));
-Imback = (Im0 + Im1 + Im2 + Im3 + Im4)/5;
+
+Imback = double(imread('DATA1/bgframe.jpg','jpg'));
 [MR,MC,Dim] = size(Imback);
 
-% Kalman filter static initializations
+% Kalman filter static initializations (TODO: These need to change)
 R=[[0.2845,0.0045]',[0.0045,0.0455]'];
 H=[[1,0]',[0,1]',[0,0]',[0,0]'];
 Q=0.01*eye(4);
 dt=1;
+
+% We need three: Rotation, Stationary, and Normal movement 
 A1=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,0,0,0]'];  % on table, no vertical velocity
 A2=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % bounce
 A3=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % normal motion
-% g = 6.0;              % gravity=pixels^2/time step
-% Bu1 = [0,0,0,0]';   % on table, no gravity
-% Bu2 = [0,0,0,g]';   % bounce
-% Bu3 = [0,0,0,g]';   % normal motion
-% loss=0.7;
 
 % multiple condensation states
 NCON=100;          % number of condensation samples
@@ -48,19 +41,17 @@ TP=zeros(4,4);   % predicted covariance
 fig1=1;
 fig2=0;
 fig15=0;
-fig3=0;
-for i = 1 : MAXTIME
+fig3=1;
+for i = 110 : (100+MAXTIME)
 
   % load image
-  if i < 11
-    Im = (imread(['DATA/ball0000010',int2str(i-1), '.jpg'],'jpg')); 
-  else
-    Im = (imread(['DATA/ball000001',int2str(i-1), '.jpg'],'jpg')); 
-  end
+  Im = (imread(['DATA1/frame', int2str(i), '.jpg'],'jpg')); 
+
   if fig1 > 0
     figure(fig1)
     clf
     imshow(Im)
+    pause(1)
   end
   Imwork = double(Im);
 
@@ -83,13 +74,14 @@ for i = 1 : MAXTIME
       plot(cc(i)+c,cr(i)+r,'g.')
       plot(cc(i)+c,cr(i)-r,'g.')
     end
+    pause(1)
   end
 
   % condensation tracking
   % generate NCON new hypotheses from current NCON hypotheses
   % first create an auxiliary array ident() containing state vector j
   % SAMPLE*p_k times, where p is the estimated probability of j
-  if i ~= 1
+  if i ~= 110
     SAMPLE=10;
     ident=zeros(100*SAMPLE,1);
     idcount=0;
@@ -101,12 +93,13 @@ for i = 1 : MAXTIME
       end
     end
   end
-
+  
+  k = 1;
   % generate NCON new state vectors
   for j = 1 : NCON
 
     % sample randomly from the auxiliary array ident()
-    if i==1 % make a random vector
+    if i==110 % make a random vector
       xc = [floor(MC*rand(1)),floor(MR*rand(1)),0,0]';
     else
       k = ident(ceil(idcount*rand(1))); % select which old sample
@@ -122,39 +115,39 @@ for i = 1 : MAXTIME
     end
 
     % hypothesize if it is going into a bounce or tabletop state
-    if i == 1    % initial time - assume falling
+    if i == 110    % initial time - assume falling
       xp = xc;   % no process at start
       A = A3;
-      Bu = Bu3;
+      % Bu = Bu3;
       trackstate(j,i)=3;
     else
       if trackstate(k,i-1)==1  % if already stopped bouncing
         A = A1;
-        Bu = Bu1;
+        % Bu = Bu1;
         xc(4) = 0;
         trackstate(j,i)=1;     % stay stopped bouncing
       else
         r=rand(1);   % random number for state selection
         if r < pstop
           A = A1;
-          Bu = Bu1;
+          % Bu = Bu1;
           xc(4) = 0;
           trackstate(j,i)=1;
         elseif r < (pbounce + pstop)
           A = A2;
-          Bu = Bu2;
+          % Bu = Bu2;
           % add some random vertical motion due to imprecision
           % about time of bounce
           xc(2) = xc(2) + 3*abs(xc(4))*(rand(1)-0.5); 
-          xc(4) = -xc(4)*loss;  % invert vertical velocity (lossy)
+          xc(4) = -xc(4);  % invert vertical velocity (lossy)
           trackstate(j,i)=2;  % set into bounce state
         else % normal motion
           A = A3;
-          Bu = Bu3;
+          % Bu = Bu3;
           trackstate(j,i)=3;
         end
       end
-      xp=A*xc + Bu;      % predict next state vector
+      xp=A*xc;      % predict next state vector
     end
 
     % update & evaluate new hypotheses via Kalman filter
