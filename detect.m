@@ -5,12 +5,13 @@ Imback = double(imread('DATA1/bgframe.jpg','jpg'));
 [MR,MC,Dim] = size(Imback);
 
 % loop over all images
-fig1=1;
-fig2=1;
-fig15=1;
-fig3=1;
+fig1=0;
+fig2=0;
+fig15=0;
+fig3=0;
 fig4=1;
-for i = 110 : 110
+
+for i = 110 : 120
   % load image
   Im = (imread(['DATA1/frame', int2str(i), '.jpg'],'jpg')); 
 
@@ -23,7 +24,7 @@ for i = 110 : 110
   Imwork = double(Im);
 
   %extract ball
-  [cc(i),cr(i),radius,flag]=extractball(Imwork,Imback,fig1,fig2,fig3,fig15,i);
+  [tracks1(i-109),tracks2(i-109),radius,flag]=extractball(Imwork,Imback,fig1,fig2,fig3,fig15,i);
   if flag==0
     continue
   end
@@ -39,14 +40,15 @@ for i = 110 : 110
     %eval(['saveas(gcf,''TRACK/trk',int2str(i-1),'.jpg'',''jpg'')']);  
   end
 
-      pause(1.3)
+      %pause(1.3)
 end
+
 
 % show positions
 if fig4 > 0
   figure(fig4)
   hold on
   clf
-  plot(cc,'r*')
-  plot(cr,'g*')
+  plot(tracks1,'r*')
+  plot(tracks2,'g*')
 end

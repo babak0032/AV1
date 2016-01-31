@@ -11,9 +11,9 @@ Q=0.01*eye(4);
 dt=1;
 
 % We need three: Rotation, Stationary, and Normal movement 
-A1=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,0,0,0]'];  % on table, no vertical velocity
-A2=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % bounce
-A3=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % normal motion
+A1=[[1,0,0,0]',[0,1,0,0]',[0,0,0,0]',[0,0,0,0]'];  % Stationary
+A2=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % Normal Motion
+A3=[[1,0,0,0]',[0,1,0,0]',[dt,0,1,0]',[0,dt,0,1]']; % Rotation
 
 % multiple condensation states
 NCON=100;          % number of condensation samples
