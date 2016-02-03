@@ -17,7 +17,7 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
          1, 5];
     H = [1, 0, 0, 0;
          0, 1, 0, 0];
-    Q = eye(4)*5;
+    Q = eye(4);
 
     % Tranisiton Matrix
     A = [1, 0, 1, 0;
@@ -76,13 +76,13 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
                 cur_particle(3:4) = 0;
             elseif r < (protate_left + pstationary)
                 angle = atan2(cur_particle(4), cur_particle(3)) + pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); % accelration in x direction
-                acc_y = sin(angle); % accelration in x direction
+                acc_x = cos(angle); %accelration in x direction
+                acc_y = sin(angle); %accelration in x direction
                 c = [acc_x,acc_y]';
             elseif r < (protate_left + protate_right + pstationary)
                 angle = atan2(cur_particle(4), cur_particle(3)) - pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); % accelration in x direction
-                acc_y = sin(angle); % accelration in x direction
+                acc_x = cos(angle); %accelration in x direction
+                acc_y = sin(angle); %accelration in x direction
                 c = [acc_x,acc_y]';
             else % normal motion
             end         
@@ -99,7 +99,7 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
             dvec = observation - [temp_state(i,1), temp_state(i,2)];
             temp_weights(i) = 1/(dvec*dvec');
         end
-        totalw = sum(temp_weights);
+        totalw=sum(temp_weights);
         new_state = temp_state;
         new_P = temp_P;
         new_weights = temp_weights/totalw;
