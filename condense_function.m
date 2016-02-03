@@ -13,11 +13,13 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
     % new_weights: Probability of the new particles
 
     % Kalman filter static initializations
-    R = [5, 1;
-         1, 5];
+    R = [0.4, 0.1;
+         0.1, 0.4];
     H = [1, 0, 0, 0;
          0, 1, 0, 0];
-    Q = eye(4)*5;
+    Q = eye(4)*1;
+    Q(3,3)= 0.01;
+    Q(4,4)= 0.01;
 
     % Tranisiton Matrix
     A = [1, 0, 1, 0;
@@ -34,9 +36,9 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
     % Number of particles
     NCON = size(weights, 2);
     
-    pstationary = 0.05;      % probability of stopping 
-    protate_left = 0.15;    % probability of rotating with a partner
-    protate_right = 0.15;    % probability of rotating with a partner
+    pstationary = 0.0;      % probability of stopping 
+    protate_left = 0.0;    % probability of rotating with a partner
+    protate_right = 0.0;    % probability of rotating with a partner
     
 
     % Init answers
@@ -64,10 +66,12 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
         end
 
         for i = 1 : NCON
-
             k = ident(ceil(idcount * rand(1))); % select which old sample
+            cur_P = squeeze(new_P(k,:,:));
             cur_particle = new_state(k,:)';
-            cur_P = squeeze(new_P(k,:,:));% TODO - add variance?
+            for n = 1: 4
+                cur_particle(n) = cur_particle(n) + 5 * sqrt( cur_P(n,n)) * randn(1);
+            end
             % Check for tracks(?), which state are we going to be in:
             % this implementation is without tracking 
             % Update new state vector
@@ -75,14 +79,14 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
             if r < pstationary
                 cur_particle(3:4) = 0;
             elseif r < (protate_left + pstationary)
-                angle = atan2(cur_particle(4), cur_particle(3)) + pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); % accelration in x direction
-                acc_y = sin(angle); % accelration in x direction
+                angle = atan2(cur_particle(4), cur_particle(3)) - pi / 2; % I am not sure about this one; z might not be the center at all;
+                acc_x = cos(angle)*5; % accelration in x direction
+                acc_y = sin(angle)*5; % accelration in x direction
                 c = [acc_x,acc_y]';
             elseif r < (protate_left + protate_right + pstationary)
-                angle = atan2(cur_particle(4), cur_particle(3)) - pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); % accelration in x direction
-                acc_y = sin(angle); % accelration in x direction
+                angle = atan2(cur_particle(4), cur_particle(3)) + pi / 2; % I am not sure about this one; z might not be the center at all;
+                acc_x = cos(angle)*5; % accelration in x direction
+                acc_y = sin(angle)*5; % accelration in x direction
                 c = [acc_x,acc_y]';
             else % normal motion
             end         

@@ -1,4 +1,4 @@
-function [new_x, temp_state] = predict(state, weights, dt)
+function [new_x, temp_state] = predict(state, P, weights, dt)
     % Condenstation tracking: Given the previos states and errors, predict the
     % new ones
     % state: State Vector (x,y,vx,vy) (100, 4)
@@ -9,47 +9,45 @@ function [new_x, temp_state] = predict(state, weights, dt)
     % new_x: State Vector of next time step (1, 4)
 
     % Tranisiton Matrix
-    A=[1, 0, 1, 0;
-       0, 1, 0, 1;
+    A=[1, 0, dt, 0;
+       0, 1, 0, dt;
        0, 0, 1, 0 ;
        0, 0, 0, 1];  % For all three movements (Stationary, Rotation, and normal Movement)
-    B=[0.5, 0;
-       0, 0.5;
-       1, 0 ;
-       0, 1];
+    B=[0.5*dt*dt, 0;
+       0, 0.5*dt*dt;
+       dt, 0 ;
+       0, dt];
    
    
     c = [0,0]';
     
     % Number of particles
-    NCON = size(weights, 1);
+    NCON = size(weights, 2);
 
-    pstationary = 0.05;      % probability of stopping 
-    protate_left = 0.15;    % probability of rotating with a partner
-    protate_right = 0.15;    % probability of rotating with a partner
+    pstationary = 0.0;      % probability of stopping 
+    protate_left = 0.0;    % probability of rotating with a partner
+    protate_right = 0.0;    % probability of rotating with a partner
     
     temp_state = state;
-    for t = 1:dt
-        for i = 1 : NCON
-            % Update new state vector
-            r = rand(1);
-            if r < pstationary
-                temp_state(i,3:4) = 0;
-            elseif r < (protate_left + pstationary)
-                angle = atan2(temp_state(i,4), temp_state(i,3)) + pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); %accelration in x direction
-                acc_y = sin(angle); %accelration in x direction
-                c = [acc_x,acc_y]';
-            elseif r < (protate_left + protate_right + pstationary)
-                angle = atan2(temp_state(i,4), temp_state(i,3)) - pi / 2; % I am not sure about this one; z might not be the center at all;
-                acc_x = cos(angle); %accelration in x direction
-                acc_y = sin(angle); %accelration in x direction
-                c = [acc_x,acc_y]';
-            else % normal motion
-            end
-            temp_state(i,:) = A * temp_state(i,:)' + B * c;      % predict next state vector
+    for i = 1 : NCON
+        r = rand(1);
+        if r < pstationary
+            temp_state(i,3:4) = 0;
+        elseif r < (protate_left + pstationary)
+            angle = atan2(temp_state(i,4), temp_state(i,3)) - pi / 2;
+            acc_x = cos(angle)*5; %accelration in x direction
+            acc_y = sin(angle)*5; %accelration in x direction
+            c = [acc_x,acc_y]';
+        elseif r < (protate_left + protate_right + pstationary)
+            angle = atan2(temp_state(i,4), temp_state(i,3)) + pi / 2;
+            acc_x = cos(angle)*5; %accelration in x direction
+            acc_y = sin(angle)*5; %accelration in x direction
+            c = [acc_x,acc_y]';
+        else % normal motion
         end
+        temp_state(i,:) = A * temp_state(i,:)' + B * c;      % predict next state vector
     end
+
     new_x = sum( repmat(weights,4,1) .* temp_state',2);
 
 end
