@@ -175,10 +175,10 @@ for t = 2 : 32
                                     redhist = imhist(redChannel(col), 25)./numel(redChannel(col));
                                     greenhist = imhist(greenChannel(col), 25)./numel(greenChannel(col));
                                     bluehist = imhist(blueChannel(col), 25)./numel(blueChannel(col));
-                                    disp([d, reg])
-                                    col_diff(reg - new_min + 1) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
+
+                                    col_diff(reg) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
                                         norm(greenhist' - squeeze(avg_colour(d,2,:))') + ...
-                                        norm(bluehist' - squeeze(avg_colour(d,3,:))')
+                                        norm(bluehist' - squeeze(avg_colour(d,3,:))');
                                 end
                                 [~, min_col_diff] = min(col_diff);
                                 cartProd(m,d) = new_min + min_col_diff - 1;
@@ -192,8 +192,7 @@ for t = 2 : 32
                         color_pass = color_pass & (col_shift < 0.3);
                     end
                 end
-                imshow(label2rgb(mask))
-                pause(2)
+                
             else
                 % Do simple colour test
                 for r = 1 : Dancers

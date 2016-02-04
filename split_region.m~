@@ -23,18 +23,19 @@ function [ mask, new_min, new_max ] = split_region( mask, region, n)
     imshow(label2rgb(mask));
     hold on
     props = regionprops(mask == region, 'Centroid','Orientation', 'MajorAxisLength');
-    dir = [cos(degtorad(props.Orientation)); sin(degtorad(props.Orientation))];
+    dir = [sin(props.Orientation + pi / 2); cos(props.Orientation + pi / 2)];
     
     midpoints = zeros(n - 1, 2);
-    midpoints(1,:) = [props.Centroid(1) - cos(degtorad(props.Orientation)) * props.MajorAxisLength * (n-2)/2/n, props.Centroid(2) - sin(degtorad(props.Orientation)) * props.MajorAxisLength * (n-2)/2/n];
+    midpoints(1,:) = [props.Centroid(1) - cos(props.Orientation) * props.MajorAxisLength * (n-2)/2/n, props.Centroid(2) - sin(props.Orientation) * props.MajorAxisLength * (n-2)/2/n];
     for i = 2 : n - 1
-        midpoints(i,:) = [midpoints(i-1,1) + cos(degtorad(props.Orientation)) * props.MajorAxisLength / n, midpoints(i-1,2) + sin(degtorad(props.Orientation)) * props.MajorAxisLength / n];
+        midpoints(i,:) = [midpoints(i-1,1) + cos(props.Orientation) * props.MajorAxisLength / n, midpoints(i-1,2) + sin(props.Orientation) * props.MajorAxisLength / n];
     end
     
     
     [r, c] = find(mask == region);
     mask(mask == region) = new_index + n;
     for pixel = 1 : size(r,1)
+        plot(c(pixel), r(pixel),'y.')
         for i = 1 : size(midpoints,1)
             if ([ c(pixel) - midpoints(i,1), r(pixel) - midpoints(i,2)] * dir) < 0
                 mask( r(pixel), c(pixel)) = new_index + i;

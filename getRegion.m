@@ -36,7 +36,7 @@ function [ ordered_mask, regions] = getRegion( Imwork, thresh , normalisation)
   % select largest object
   mask = bwlabel(foremm,4);
   
-  regions = regionprops(mask, 'Area', 'Centroid', 'Orientation', 'MajorAxisLength'); %Gets Area, centriod, and the bounding box
+  regions = regionprops(mask, 'Area', 'Centroid'); %Gets Area, centriod, and the bounding box
   [N,~] = size(regions);
   if N < 1
     return   
