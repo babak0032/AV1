@@ -3,15 +3,18 @@ Colours = cellstr(['r.'; 'b.'; 'g.'; 'c.']);
 Frames = 209;
 Particles = 100;
 Ignore_pos = [121,222; 150,223];
-Threshold = 11;
-Bins = 256;
-Search_Radius = 30;
+Threshold = 12;
+Bins = 10;
+Sep = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8];
+Bin_edges = {Sep Sep };%{[0, 5, 15, 30, 50, 75] [0, 5, 15, 30, 50, 75]};
+Colour_thresh = 0.15;
+
 
 Imback = double(imread('DATA1/bgframe.jpg','jpg'));
 [MR,MC,Dim] = size(Imback);
 % Tracker for each Dancer
-avg_colour = zeros(Dancers, 3, Bins);
-
+avg_colour = zeros(Dancers, Bins, Bins);
+avg_size = zeros(Dancers, 1);
 matched = zeros(Dancers);
 
 path = zeros(Dancers, Frames, 2);
@@ -24,12 +27,6 @@ track_P(:,:,2,2) = 5;
 track_P(:,:,3,3) = 0;
 track_P(:,:,4,4) = 0;
 
-% for i =1:Frames
-%     [candidate_regions, mask] = getRegion( double(imread(strcat('DATA1/frame', int2str(i + 109), '.jpg'),'jpg')), 10, 0);
-%     imshow(mask)
-%     pause(0.05)
-% end
-
 Imstart = imread(strcat('DATA1/frame110.jpg'),'jpg');
 next_dancer = 1;
 [mask, candidate_regions] = getRegion( double(Imstart), Threshold, 0);
@@ -38,18 +35,23 @@ imshow(Imstart)
 
 for region = 1 : size(candidate_regions)
     if ~any(pdist2(Ignore_pos, [candidate_regions(region).Centroid(1), candidate_regions(region).Centroid(2)]) < 50)
+
+        avg_size(next_dancer) = candidate_regions(region).Area;
+
+        redChannel = double(Imstart(:, :, 1));
+        greenChannel = double(Imstart(:, :, 2));
+        blueChannel = double(Imstart(:, :, 3));
+
+        rgb_sum = redChannel + greenChannel + blueChannel;
+        rgb_sum(rgb_sum == 0) = 1;
+
+        red = redChannel ./ rgb_sum;
+        green = greenChannel ./ rgb_sum;
         
-        col = mask == region;
-        
-        redChannel = Imstart(:, :, 1);
-        greenChannel = Imstart(:, :, 2);
-        blueChannel = Imstart(:, :, 3);
-                
-        redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-        greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-        bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-        
-        avg_colour(next_dancer,:,:) = [redhist, greenhist, bluehist]';
+        col = (mask == region);        
+        red = red(col);
+        green = green(col);
+        avg_colour(next_dancer,:,:) = hist3([red, green], 'Edges', Bin_edges) / avg_size(next_dancer);
         
         for k = 1 : Particles
               track_pos(next_dancer, k,1,:) = [floor(candidate_regions(region).Centroid(1) + 15*rand(1)-7), floor( candidate_regions(region).Centroid(2) + 15*rand(1)-7),0,0];
@@ -64,9 +66,8 @@ for region = 1 : size(candidate_regions)
         break
     end
 end
-pause(0.1)
 hold off
-
+figure(1)
 
 
 
@@ -74,6 +75,7 @@ for t = 2 : Frames
     disp(t)
     % Preparation - extract region centres
     time_step = 0;
+    Search_Radius = 20;
     Imwork = imread(strcat('DATA1/frame', int2str(t + 109), '.jpg'),'jpg');
     
     [~, properties] = getRegion( double(Imwork), Threshold, 0);
@@ -88,7 +90,7 @@ for t = 2 : Frames
     % increasing the time step
     while ~all(matched)
         time_step = time_step + 1;
-        
+        Search_Radius = Search_Radius + 10;
         hold off
         hold on
         imshow(Imwork)
@@ -136,119 +138,112 @@ for t = 2 : Frames
             
             % Checks if regions need to be subdivided and performs a simple
             % colour test on the regions
-            redChannel = Imwork(:, :, 1);
-            greenChannel = Imwork(:, :, 2);
-            blueChannel = Imwork(:, :, 3);
+            redChannel = double(Imwork(:, :, 1));
+            greenChannel = double(Imwork(:, :, 2));
+            blueChannel = double(Imwork(:, :, 3));
             
+            rgb_sum = redChannel + greenChannel + blueChannel;
+            rgb_sum(rgb_sum == 0) = 1;
+
+            red = redChannel ./ rgb_sum;
+            green = greenChannel ./ rgb_sum;
+
             % Check if region is occupied multiple times and alter mask
             regions = unique(cartProd(m,:));
             color_pass = 1;
+            size_pass = 1;
             if ~(size([regions],2) == Dancers)
                 disp('overcrowded')
                 for track = 1 : Dancers
-                    disp(track)
-                    col = mask == cartProd(m,track);
-
-                    redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-                    greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-                    bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-                    
                     if sum(cartProd(m,:) == cartProd(m,track)) > 1
                         disp('Splitting')
-                        disp( cartProd(m,track) )
-                        disp( cartProd(m, :) )
+                        % disp( cartProd(m, :) )
                         to_split = cartProd(m,track);
                                            
                         [mask, new_min, new_max] = split_region(mask, to_split, sum(cartProd(m,:) == cartProd(m,track)));
-                        for d = 1 : Dancers
-                            if cartProd(m,d) == to_split
-                                col_diff = zeros(new_max - new_min + 1,1);
-                                for reg = new_min : new_max
-                                    col = mask == reg;
-
-                                    redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-                                    greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-                                    bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-                                    disp([d, reg])
-                                    col_diff(reg - new_min + 1) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
-                                        norm(greenhist' - squeeze(avg_colour(d,2,:))') + ...
-                                        norm(bluehist' - squeeze(avg_colour(d,3,:))')
-                                end
-                                [min_col, min_col_diff] = min(col_diff);
-                                cartProd(m,d) = new_min + min_col_diff - 1;
-                                color_pass = color_pass & (min_col < 0.6);
+                        
+                        split_participants = find(cartProd(m,:) == to_split);
+                        allocations = perms(split_participants);
+                        best_perm = zeros(numel(split_participants),1);
+                        best_value = inf;
+                        for perm = 1 : size(allocations, 1)
+                            val = 0;
+                            for reg = 1 : size(allocations, 2)
+                                col = (mask == reg + new_min - 1);
+                                local_red = red(col);
+                                local_green = green(col);
+                                val = val + compareHists(hist3([local_red, local_green], 'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(allocations(perm, reg),:,:)));
+                            end
+                            if val < best_value
+                                best_perm = allocations(perm, :);
+                                best_value = val;
                             end
                         end
-                    else
-                        disp('singleton')
-                        col_shift = norm(redhist' - squeeze(avg_colour(track,1,:))') + ...
-                                norm(greenhist' - squeeze(avg_colour(track,2,:))') + ...
-                                norm(bluehist' - squeeze(avg_colour(track,3,:))');
-                        color_pass = color_pass & (col_shift < 0.6);
+                        for d = 1 : Dancers
+                            if cartProd(m,d) == to_split
+                                cartProd(m,d) = new_min - 1 + find(best_perm == d);
+                            end
+                        end
+                        
                     end
+                    % disp('singleton')
+                    col = (mask == cartProd(m,track));
+                    local_red = red(col);
+                    local_green = green(col);
+                    col_shift = compareHists(hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(track,:,:)));
+                    color_pass = color_pass & (col_shift < Colour_thresh);
+                    size_pass = size_pass & sum(sum(mask == cartProd(m,d))) < avg_size(track) * 1.2 & sum(sum(mask == cartProd(m,d))) > avg_size(track) * 0.8;
+
                 end
-                figure(2)
-                imshow(label2rgb(mask))
-                pause(1)
-                figure(1)
             else
                 % Do simple colour test
                 for r = 1 : Dancers
-                    col = mask == cartProd(m,r);
-
-                    redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-                    greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-                    bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-
-                    col_shift = norm(redhist' - squeeze(avg_colour(r,1,:))') + ...
-                            norm(greenhist' - squeeze(avg_colour(r,2,:))') + ...
-                            norm(bluehist' - squeeze(avg_colour(r,3,:))');
-                    color_pass = color_pass & (col_shift < 0.3);
-                    avg_colour(r,:,:) = [redhist, greenhist, bluehist]'/ 5 + squeeze(avg_colour(r,:,:)) * 4 / 5 ;
+                    col = (mask == cartProd(m,r));
+                    local_red = red(col);
+                    local_green = green(col);
+                    col_shift = compareHists(hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(r,:,:)));
+                    color_pass = color_pass & (col_shift < Colour_thresh);
+                    size_pass = size_pass & sum(sum(mask == cartProd(m,r))) < avg_size(r) * 1.2 & sum(sum(mask == cartProd(m,r))) > avg_size(r) * 0.8;
+                end
+                
+                if color_pass
+                    for r = 1 : Dancers
+                        % TODO update
+                        col = (mask == cartProd(m,r));
+                        local_red = red(col);
+                        local_green = green(col);
+                        avg_colour(r,:,:) = hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)) / 5 + squeeze(avg_colour(r,:,:)) * 4 / 5 ;
+                        % avg_size(r) = sum(sum(mask == cartProd(m,r)));
+                    end
                 end
                 
             end
-            asdf = cartProd(m,:)
-            values = unique(mask);
-            col_diffs = zeros(Dancers, size(values,1));
+            values = unique(mask)';
+            col_diffs = zeros(Dancers, size(values,2) -1 );
             for d = 1 : Dancers
-                for reg = 1 : size(values,1)
-                    col = mask == reg;
-
-                    redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-                    greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-                    bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-
-                    col_diffs(d,reg) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
-                        norm(greenhist' - squeeze(avg_colour(d,2,:))') + ...
-                        norm(bluehist' - squeeze(avg_colour(d,3,:))');
+                for reg = 1 : size(values,2) -1
+                    col = (mask == values(reg + 1));
+                    local_red = red(col);
+                    local_green = green(col);
+                    col_diffs(d,reg) = compareHists(hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(d,:,:)));
                 end
             end
+            allocs = cartProd(m,:)
             col_diffs
+            pause(0.1)
             if ~color_pass
-%                 
-%                 
-%                 
-%                 for r = 1 : Dancers
-%                     [~,min_id] = min(col_diffs(d,:));
-%                     col = mask == cartProd(m,r);
-% 
-%                     redhist = imhist(redChannel(col), Bins)./numel(redChannel(col));
-%                     greenhist = imhist(greenChannel(col), Bins)./numel(greenChannel(col));
-%                     bluehist = imhist(blueChannel(col), Bins)./numel(blueChannel(col));
-% 
-%                     col_shift = norm(redhist' - squeeze(avg_colour(r,1,:))') + ...
-%                             norm(greenhist' - squeeze(avg_colour(r,2,:))') + ...
-%                             norm(bluehist' - squeeze(avg_colour(r,3,:))')
-%                     imshow(col)
-%                     pause(0.1)
-%                     imshow(label2rgb(mask))
-%                     pause(1)
-%                 end
                 disp('COLORS');
                 continue
             end
-            
+%             if ~size_pass
+%                 disp(avg_size)
+%                 for d = 1 : Dancers
+%                     sum(sum(mask == cartProd(m,d)))
+%                 end
+% 
+%                 disp('SIZE');
+%                 continue
+%             end
             % Passed all test, update
 
             for r = 1 : Dancers

@@ -36,9 +36,9 @@ function [new_state, new_P, new_weights, new_x] = condense_function(state, P, we
     % Number of particles
     NCON = size(weights, 2);
     
-    pstationary = 0.05;      % probability of stopping 
-    protate_left = 0.05;    % probability of rotating with a partner
-    protate_right = 0.05;    % probability of rotating with a partner
+    pstationary = 1.0;      % probability of stopping 
+    protate_left = 0.0;    % probability of rotating with a partner
+    protate_right = 0.0;    % probability of rotating with a partner
     
 
     % Init answers

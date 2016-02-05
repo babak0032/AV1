@@ -24,9 +24,9 @@ function [new_x, temp_state] = predict(state, P, weights, dt)
     % Number of particles
     NCON = size(weights, 2);
 
-    pstationary = 0.05;      % probability of stopping 
-    protate_left = 0.05;    % probability of rotating with a partner
-    protate_right = 0.05;    % probability of rotating with a partner
+    pstationary = 1.0;      % probability of stopping 
+    protate_left = 0.0;    % probability of rotating with a partner
+    protate_right = 0.0;    % probability of rotating with a partner
     
     temp_state = state;
     for i = 1 : NCON
