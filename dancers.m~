@@ -3,6 +3,8 @@ Colours = cellstr(['r.'; 'b.'; 'g.'; 'c.']);
 Frames = 209;
 Particles = 100;
 Ignore_pos = [121,222; 150,223];
+Threshold = 11;
+
 
 Imback = double(imread('DATA1/bgframe.jpg','jpg'));
 [MR,MC,Dim] = size(Imback);
@@ -29,8 +31,8 @@ track_P(:,:,4,4) = 0;
 
 Imstart = imread(strcat('DATA1/frame110.jpg'),'jpg');
 next_dancer = 1;
-[mask, candidate_regions] = getRegion( double(Imstart), 10, 0);
-figure(2)
+[mask, candidate_regions] = getRegion( double(Imstart), Threshold, 0);
+figure(1)
 imshow(Imstart)
 
 for region = 1 : size(candidate_regions)
@@ -67,17 +69,13 @@ hold off
 
 
 
-for t = 2 : 32
+for t = 2 : Frames
     disp(t)
     % Preparation - extract region centres
     time_step = 0;
     Imwork = imread(strcat('DATA1/frame', int2str(t + 109), '.jpg'),'jpg');
     
-%     figure(1)
-%     mask = getRegion( double(Imwork), 10, 1);
-%     imshow(mask)
-%     figure(2)
-    [~, properties] = getRegion( double(Imwork), 10, 0);
+    [~, properties] = getRegion( double(Imwork), Threshold, 0);
     candidate_regions = struct2cell(properties);
     centres = cell2mat(candidate_regions(2,:)');
     matched = 0;
@@ -133,7 +131,7 @@ for t = 2 : 32
         for m = 1 : size(cartProd, 1)
 
             %alsdfgh = cartProd(m,:)
-            [mask, props] = getRegion( double(Imwork), 10, 0);
+            [mask, props] = getRegion( double(Imwork), Threshold, 0);
             
             % Checks if regions need to be subdivided and performs a simple
             % colour test on the regions
@@ -159,12 +157,7 @@ for t = 2 : 32
                         disp( cartProd(m,track) )
                         disp( cartProd(m, :) )
                         to_split = cartProd(m,track);
-                        joint_hist = squeeze(sum(avg_colour(cartProd(m,:) == cartProd(m,track), :, :), 1));
-                        col_shift = norm(redhist' - joint_hist(1,:)) + ...
-                            norm(greenhist' - joint_hist(2,:)) + ...
-                            norm(bluehist' - joint_hist(3,:))
-                        color_pass = color_pass & (col_shift < 0.3);
-                        
+                                           
                         [mask, new_min, new_max] = split_region(mask, to_split, sum(cartProd(m,:) == cartProd(m,track)));
                         for d = 1 : Dancers
                             if cartProd(m,d) == to_split
@@ -175,13 +168,14 @@ for t = 2 : 32
                                     redhist = imhist(redChannel(col), 25)./numel(redChannel(col));
                                     greenhist = imhist(greenChannel(col), 25)./numel(greenChannel(col));
                                     bluehist = imhist(blueChannel(col), 25)./numel(blueChannel(col));
-
-                                    col_diff(reg) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
+                                    disp([d, reg])
+                                    col_diff(reg - new_min + 1) = norm(redhist' - squeeze(avg_colour(d,1,:))') + ...
                                         norm(greenhist' - squeeze(avg_colour(d,2,:))') + ...
-                                        norm(bluehist' - squeeze(avg_colour(d,3,:))');
+                                        norm(bluehist' - squeeze(avg_colour(d,3,:))')
                                 end
-                                [~, min_col_diff] = min(col_diff);
+                                [min_col, min_col_diff] = min(col_diff);
                                 cartProd(m,d) = new_min + min_col_diff - 1;
+                                color_pass = color_pass & (min_col < 0.6);
                             end
                         end
                     else
@@ -189,10 +183,13 @@ for t = 2 : 32
                         col_shift = norm(redhist' - squeeze(avg_colour(track,1,:))') + ...
                                 norm(greenhist' - squeeze(avg_colour(track,2,:))') + ...
                                 norm(bluehist' - squeeze(avg_colour(track,3,:))');
-                        color_pass = color_pass & (col_shift < 0.3);
+                        color_pass = color_pass & (col_shift < 0.6);
                     end
                 end
-                
+                figure(2)
+                imshow(label2rgb(mask))
+                pause(1)
+                figure(1)
             else
                 % Do simple colour test
                 for r = 1 : Dancers
@@ -236,11 +233,7 @@ for t = 2 : 32
             if ~color_pass
 %                 cartProd(m,:)
 %                 values = unique(mask);
-%                 for reg = 1 : size(values)
-%                      col = mask == values(reg);
-%                      imshow(col)
-%                      pause(0.1)
-%                 end
+
 %                 
 %                 
 %                 
@@ -265,8 +258,10 @@ for t = 2 : 32
             end
             
             % Passed all test, update
+
             for r = 1 : Dancers
-                centre = cell2mat(struct2cell(regionprops(mask == cartProd(m,r), 'Centroid')));
+                [row,col] = find(mask == cartProd(m,r));
+                centre = [mean(col), mean(row)];
                 [new_x, new_P, new_weights, pos] = condense_function(squeeze(track_pos(r,:,t-1,:)), squeeze(track_P(r, :, :, :)), squeeze(track_weights(r,:)), centre, time_step);
                 track_pos(r, :, t, :) = new_x; 
                 track_weights(r, :) = new_weights;
