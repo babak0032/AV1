@@ -1,7 +1,7 @@
 Dancers = 4;
 Colours = cellstr(['r.'; 'b.'; 'g.'; 'c.']);
-Frames = 209;
-Particles = 100;
+Frames = 210;
+Particles = 2;
 Ignore_pos = [121,222; 150,223];
 Threshold = 12;
 Bins = 10;
@@ -17,6 +17,7 @@ avg_colour = zeros(Dancers, Bins, Bins);
 avg_size = zeros(Dancers, 1);
 matched = zeros(Dancers);
 
+all_observations = zeros(Dancers, Frames, 2);
 path = zeros(Dancers, Frames, 2);
 track_pos = zeros(Dancers, Particles, Frames, 4);
 track_weights = zeros(Dancers, Particles);
@@ -58,6 +59,7 @@ for region = 1 : size(candidate_regions)
               track_weights(next_dancer, k) = 1 / Particles;
         end
         path(next_dancer, 1, :) = [floor(candidate_regions(region).Centroid(1)), floor(candidate_regions(region).Centroid(2))];
+        all_observations(next_dancer, 1, :) = [floor(candidate_regions(region).Centroid(1)), floor(candidate_regions(region).Centroid(2))];
         radius = sqrt(candidate_regions(region).Area / pi);
         next_dancer = next_dancer + 1;
 
@@ -90,7 +92,7 @@ for t = 2 : Frames
     % increasing the time step
     while ~all(matched)
         time_step = time_step + 1;
-        Search_Radius = Search_Radius + 5;
+        Search_Radius = Search_Radius + 10;
         hold off
         hold on
         imshow(Imwork)       
@@ -286,6 +288,7 @@ for t = 2 : Frames
             for r = 1 : Dancers
                 [row,col] = find(mask == cartProd(m,r));
                 centre = [mean(col), mean(row)];
+                all_observations(r, t, :) = centre;
                 [new_x, new_P, new_weights, pos] = condense_function(squeeze(track_pos(r,:,t-1,:)), squeeze(track_P(r, :, :, :)), squeeze(track_weights(r,:)), centre, time_step);
                 track_pos(r, :, t, :) = new_x; 
                 track_weights(r, :) = new_weights;
