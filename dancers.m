@@ -7,7 +7,7 @@ Threshold = 12;
 Bins = 10;
 Sep = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8];
 Bin_edges = {Sep Sep };%{[0, 5, 15, 30, 50, 75] [0, 5, 15, 30, 50, 75]};
-Colour_thresh = 0.14 % 0.1554;
+Colour_thresh = 0.14; % 0.1554;
 
 
 Imback = double(imread('DATA1/bgframe.jpg','jpg'));
@@ -239,7 +239,7 @@ for t = 2 : Frames
             
             % this just calculates the colour difference (For debugging
             % purposes)
-            values = unique(mask)'
+            values = unique(mask)';
             col_diffs = zeros(1,Dancers);% zeros(Dancers, size(values,2) -1 );
             for d = 1 : Dancers
                 % for reg = 1 : size(values,2) -1
@@ -250,7 +250,7 @@ for t = 2 : Frames
                 % end
             end
             
-            col_diffs
+            col_diffs;
             
             col_diffs_2 = zeros(Dancers, size(values,2) -1 );
             for d = 1 : Dancers
@@ -263,11 +263,11 @@ for t = 2 : Frames
             end           
             
             
-            allocs = cartProd(m,:)
-            col_diffs_2
+            allocs = cartProd(m,:);
+            col_diffs_2;
             pause(0.05)
             
-            color_pass
+            color_pass;
             if color_pass < 1
                 imshow(label2rgb(mask))
                 pause(1)

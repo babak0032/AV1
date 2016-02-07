@@ -20,6 +20,10 @@ load('DATA1/positions1.mat')
 answer = 1;
 index = 1;
 
+%size(positions(1,:,:))
+
+
+
 % plot the ground truth positions (4,210,2)
 % plot(squeeze(positions(1,1:209,1)), squeeze(positions(1,1:209,2)))
 % hold on
@@ -93,5 +97,25 @@ size(dist_data)
 mean(dist_data)
 var(dist_data)
 median(dist_data)
+
+% Actual trajectories
+imshow(imread('DATA1/frame110.jpg','jpg'))
+hold on
+plot(squeeze(positions(1,:,1)), squeeze(positions(1,:,2)), 'r')
+plot(squeeze(positions(2,:,1)), squeeze(positions(2,:,2)), 'c')
+plot(squeeze(positions(3,:,1)), squeeze(positions(3,:,2)), 'b')
+plot(squeeze(positions(4,:,1)), squeeze(positions(4,:,2)), 'g')
+pause(5)
+
+hold off
+
+figure(2)
+imshow(imread('DATA1/frame110.jpg','jpg'))
+hold on
+plot(squeeze(path(1,:,1)), squeeze(path(1,:,2)), 'r')
+plot(squeeze(path(2,:,1)), squeeze(path(2,:,2)), 'b')
+plot(squeeze(path(3,:,1)), squeeze(path(3,:,2)), 'g')
+plot(squeeze(path(4,:,1)), squeeze(path(4,:,2)), 'c')
+pause(5)
 
 end

@@ -10,7 +10,7 @@
 % evaluation(all_observations, path)
 load('DATA1/positions1.mat')
 % check_image(233, all_observations, positions, 1)
-check_track(265,all_observations)
+check_track(120
 
 
 
