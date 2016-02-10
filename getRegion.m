@@ -32,7 +32,7 @@ function [ ordered_mask, regions] = getRegion( Imwork, thresh, normalisation)
   foremm = bwareaopen(fore, 100);
   foremm = bwmorph(foremm,'close');
   foremm = bwmorph(foremm,'majority');
-  foremm = bwareaopen(foremm,50);
+  foremm = bwareaopen(foremm, 50);
   
   
   foremm = bwlabel(foremm,4);

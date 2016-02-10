@@ -4,7 +4,7 @@ Ignore_pos = [121,222; 150,223];
 Threshold = 12;
 Bins = 10;
 Sep = [0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8];
-Bin_edges = {Sep Sep };
+Bin_edges = {Sep Sep};
 Colour_thresh = 0.14;
 
 Dancers = 4;
@@ -101,7 +101,7 @@ for t = 2 : Frames
     attempts = 0;
     matched = 0;
     assignment = zeros(Dancers,1);
-    while (~matched) && (attempts < 15)
+    while (~matched) && (attempts < 5)
         Search_Radius = Search_Radius + 10;
         % For every tracker (dancer) find regions within search radius of
         % old position
@@ -189,7 +189,7 @@ for t = 2 : Frames
                     color_pass = color_pass - (col_shift > Colour_thresh);
                     % Do the same for the regions size
                     region_size = sum(sum(col));
-                    size_pass = size_pass - (region_size > avg_size(track) * 1.3 || region_size < avg_size(track) * 0.7);                    
+                    size_pass = size_pass - (region_size > avg_size(track) * 1.6 || region_size < avg_size(track) * 0.4);                    
 
                 end
             else
@@ -205,17 +205,20 @@ for t = 2 : Frames
                     color_pass = color_pass - (col_shift > Colour_thresh);
                     % Size comparison
                     region_size = sum(sum(col));
-                    size_pass = size_pass - (region_size > avg_size(r) * 1.3 || region_size < avg_size(r) * 0.7);      
+                    size_pass = size_pass - (region_size > avg_size(r) * 1.6 || region_size < avg_size(r) * 0.4);      
                 end
                 
                 % If all tests were successful update the tracker colours
                 % and sizes
-                if (color_pass == 2) && (size_pass == 2)
-                    for r = 1 : Dancers
-                        col = (mask == cartProd(m,r));
-                        local_red = red(col);
-                        local_green = green(col);
+                
+                for r = 1 : Dancers
+                    col = (mask == cartProd(m,r));
+                    local_red = red(col);
+                    local_green = green(col);
+                    if (color_pass == 2) && (size_pass > 0)
                         avg_colour(r,:,:) = hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)) / 5 + squeeze(avg_colour(r,:,:)) * 4 / 5 ;
+                    end
+                    if (color_pass > 0) && (size_pass == 2)
                         avg_size(r) = sum(sum(col)) / 5 + avg_size(r) * 4 / 5;
                     end
                 end
@@ -309,7 +312,7 @@ for t = 2 : Frames
             plot(all_observations(tracker, t,1) + c, all_observations(tracker, t,2) - r, char(Colours(tracker)))
         end
     end 
-    pause(1)
+    pause(0.05)
 end
 
 
