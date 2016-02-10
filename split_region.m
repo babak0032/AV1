@@ -1,24 +1,4 @@
 function [ mask, new_min, new_max ] = split_region( mask, region, n)
-% split_region( mask, region, dancers)
-%           mask - image containing the regions
-%           region - index of the region to be split
-%           dancers [Dancers, 2] - Dancers, their estimated coordinates
-%      new_index = max(max(mask));
-%      figure(2)
-%      imshow(mask==region)
-%      pause(1)
-%      
-%      [r, c] = find(mask == region);
-%      for pixel = 1 : size(r,1)
-%          mask(r(pixel), c(pixel)) = knnsearch(dancers(:,:), [c(pixel), r(pixel)]) + new_index;
-%      end
-%      imshow(label2rgb(mask))     
-%      hold on
-%      for dancer = 1 : 2
-%          plot(dancers(dancer,1), dancers(dancer,2), 'r.')
-%      end
-%      pause(5)
-%      hold off
     new_index = max(max(mask));
 
     props = regionprops(mask == region, 'Centroid','Orientation', 'MajorAxisLength');

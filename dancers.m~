@@ -33,8 +33,9 @@ green = greenChannel ./ rgb_sum;
 next_dancer = 1;
 
 figure(1)
-imshow(Imstart)
 hold on
+imshow(Imstart)
+
 % Considers regions ordered by their size (starting with the largest) until
 % Sufficiently many regions have been encountered
 for region = 1 : size(candidate_regions)
@@ -101,7 +102,7 @@ for t = 2 : Frames
     attempts = 0;
     matched = 0;
     assignment = zeros(Dancers,1);
-    while (~matched) && (attempts < 15)
+    while (~matched) && (attempts < 10)
         Search_Radius = Search_Radius + 10;
         % For every tracker (dancer) find regions within search radius of
         % old position
@@ -218,10 +219,14 @@ for t = 2 : Frames
             end
             % If the colour test failed
             if color_pass < 1
+                disp('COLORS');
                 continue
             end
             % If the colour test was succesful
             if size_pass < 1
+                disp('SIZE');
+                disp(avg_size)
+                disp(size_pass)
                 continue
             end
             % update the assignment and leave
@@ -229,20 +234,17 @@ for t = 2 : Frames
             matched = 1;
             break
         end
-        attempts = attempts + 1;
     end
     
     
     if ~matched
         [mask, props] = getRegion( double(Imwork), Threshold, 0);
-
         for r = 1 : Dancers
-            distances = pdist2(centres, [all_observations(r, t-1,1), all_observations(r, t-1,2)]);
+            distances = pdist2(centres, [all_observations(tracker, t-1,1), all_observations(tracker, t-1,2)]);
             [min_Dist, minInd] = min(distances);
-            assignment(r) = mask(floor(centres(minInd,2)), floor(centres(minInd,1)));
+            assignment(r) = mask(centres(minInd,1), centres(minInd,2));
         end
-        regions = unique(assignment);
-
+        regions = unique(assignment);            
         % If the trackers weren't matched to 4 different regions we
         % need to split at least one of them
         if ~(size([regions],2) == Dancers)
@@ -255,7 +257,6 @@ for t = 2 : Frames
                     [mask, new_min, new_max] = split_region(mask, to_split, sum(assignment == assignment(track))); % resulting mask and new region labels
                         
                     split_participants = find(assignment == to_split); % tracker/dancer numbers assigned to the splitted region
-                    
                     allocations = perms(split_participants); % possible allocations to the resulting subregions
                     best_perm = zeros(numel(split_participants),1); % the best assignment to sub-regions
                     best_value = inf; % Best overall colour difference
@@ -282,17 +283,34 @@ for t = 2 : Frames
                     % Reassign the dancers according to the best
                     % permutation found
                     for d = 1 : Dancers
-                        if assignment(d) == to_split
-                            assignment(d) = new_min - 1 + find(best_perm == d);
+                        if assignment(track) == to_split
+                            assignment(track) = new_min - 1 + find(best_perm == d);
                         end
                     end
+                   
+                    end
+                    % Compute the colour difference between the dancer and
+                    % its assigned region and test that it is within the
+                    % allowed tolerance
+                    col = (mask == cartProd(m,track));
+                    local_red = red(col);
+                    local_green = green(col);
+                    col_shift = compareHists(hist3([local_red, local_green],'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(track,:,:)));
+                    color_pass = color_pass - (col_shift > Colour_thresh);
+                    % Do the same for the regions size
+                    region_size = sum(sum(col));
+                    size_pass = size_pass - (region_size > avg_size(track) * 1.3 || region_size < avg_size(track) * 0.7);                    
+
                 end
-            end
-        end
     end
     % Finalise the assignment
+    figure(2)
+    imshow(mask)
+    figure(1)
+    
     hold off
-    imshow(Imwork)
+    
+    imshow(Imwork)       
     hold on
     for tracker = 1 : Dancers
         [row,col] = find(mask == assignment(tracker));

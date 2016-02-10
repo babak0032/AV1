@@ -1,4 +1,4 @@
-function [ ordered_mask, regions] = getRegion( Imwork, thresh , normalisation)
+function [ ordered_mask, regions] = getRegion( Imwork, thresh, normalisation)
 %getRegion Summary of this function goes here
 %   Detailed explanation goes here
   Imback = double(imread('DATA1/bgframe.jpg','jpg'));
@@ -28,14 +28,16 @@ function [ ordered_mask, regions] = getRegion( Imwork, thresh , normalisation)
         | (abs(Imwork(:,:,3) - Imback(:,:,3)) > thresh);
   end
 
-  % erode to remove small noise
-  foremm = bwareaopen(fore,30);
+  % % Remove regions that are small
+  foremm = bwareaopen(fore, 100);
   foremm = bwmorph(foremm,'close');
+  foremm = bwmorph(foremm,'majority');
   foremm = bwareaopen(foremm,50);
   
   
   foremm = bwlabel(foremm,4);
   mask = imfill(foremm,'holes');
+  
   regions = regionprops(mask, 'Area', 'Centroid'); %Gets Area, centriod, and the bounding box
   [N,~] = size(regions);
   if N < 1
