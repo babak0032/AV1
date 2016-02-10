@@ -140,21 +140,21 @@ for t = 2 : Frames
                     % If the tracker does share its assigned region
                     if sum(cartProd(m,:) == cartProd(m,track)) > 1
                         to_split = cartProd(m,track); % label of region to be split
-                        [mask, new_min, new_max] = split_region(mask, to_split, sum(cartProd(m,:) == cartProd(m,track))); % resulting mask and new region labels
+                        [tmp_mask, new_min, new_max] = split_region(mask, to_split, sum(cartProd(m,:) == cartProd(m,track))); % resulting temporary mask and new region labels of even split
                         
                         split_participants = find(cartProd(m,:) == to_split); % tracker/dancer numbers assigned to the splitted region
                         allocations = perms(split_participants); % possible allocations to the resulting subregions
                         best_perm = zeros(numel(split_participants),1); % the best assignment to sub-regions
                         best_value = inf; % Best overall colour difference
                         
-                        % for evey permutation
+                        % for every permutation
                         for perm = 1 : size(allocations, 1)
                             val = 0;
                             
                             % Go through the assignments between sub-regions and their assigned tracker
                             % add the colour differences to 'val' 
                             for reg = 1 : size(allocations, 2)
-                                col = (mask == reg + new_min - 1);
+                                col = (tmp_mask == reg + new_min - 1);
                                 local_red = red(col);
                                 local_green = green(col);
                                 val = val + compareHists(hist3([local_red, local_green], 'Edges', Bin_edges) / sum(sum(col)), squeeze(avg_colour(allocations(perm, reg),:,:)));
@@ -167,13 +167,17 @@ for t = 2 : Frames
                             end
                         end
                         % Reassign the dancers according to the best
-                        % permutation found
+                        % permutation found and weight the final split by
+                        % their average size
+                        weights = zeros(size(split_participants,1),1);
                         for d = 1 : Dancers
                             if cartProd(m,d) == to_split
                                 cartProd(m,d) = new_min - 1 + find(best_perm == d);
+                                weights(find(best_perm == d)) = avg_size(d);
                             end
                         end
-                   
+                        weights = weights / sum(weights);
+                        [mask, ~, ~] = split_region_weighted(mask, to_split, weights); % final mask and new region labels
                     end
                     % Compute the colour difference between the dancer and
                     % its assigned region and test that it is within the
